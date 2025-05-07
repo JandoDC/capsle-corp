@@ -1,126 +1,106 @@
+// src/components/GuessForm.js - No changes needed from the previous version for API integration
 import { useState, useEffect, useRef } from "react";
 
-// Accept onGuess, the list of characters, and the current language
-function GuessForm({ onGuess, characters = [], lang }) {
-  const [input, setInput] = useState(""); // State for the input field's value
-  const [filtered, setFiltered] = useState([]); // State for characters matching the input
-  const formRef = useRef(null); // Ref to the form container for outside click detection
+// Accept value, onChange, onGuess, and characters (removed lang)
+function GuessForm({ value, onChange, onGuess, characters = [] }) {
+  const [filtered, setFiltered] = useState([]);
+  const formRef = useRef(null);
 
-  // Effect to filter characters based on input and available characters list
+  // Effect for filtering characters based on the `value` prop (input content)
   useEffect(() => {
-      // Only filter if there is text in the input and the characters list is not empty
-      if (input.length > 0 && characters.length > 0) {
-        const lowerInput = input.toLowerCase();
-        // Filter characters whose 'id' includes the input (case-insensitive)
-        // You could expand this to search names in the current language too
+      if (value.length > 0 && characters.length > 0) {
+        const lowerInput = value.toLowerCase();
         const matches = characters.filter((char) =>
-            char.id.toLowerCase().includes(lowerInput)
-            // Optional: Add search by localized name
-            // || (char[`name_${lang}`] && char[`name_${lang}`].toLowerCase().includes(lowerInput))
+            // Filter by ID or Spanish name (name_es)
+            char.id.toLowerCase().includes(lowerInput) ||
+            (char.name_es && char.name_es.toLowerCase().includes(lowerInput))
         );
         setFiltered(matches);
       } else {
-        setFiltered([]); // Clear the filtered list if input is empty
+        setFiltered([]);
       }
-      // Add input, characters, and lang to the dependency array
-  }, [input, characters, lang]); // Re-run effect if input, character list, or language changes
+      // Dependency array includes value and characters
+  }, [value, characters]);
 
-   // Effect to close the autocomplete dropdown when clicking outside the form area
+
+   // Effect to close the autocomplete dropdown when clicking outside
    useEffect(() => {
        const handleClickOutside = (event) => {
-           // Check if the clicked element is NOT inside the form container
            if (formRef.current && !formRef.current.contains(event.target)) {
-               setFiltered([]); // Hide the dropdown by clearing the filtered list
+               setFiltered([]);
            }
        };
 
-       // Add the mousedown event listener to the document only when the dropdown is visible
        if (filtered.length > 0) {
            document.addEventListener("mousedown", handleClickOutside);
        } else {
-           // Remove the event listener when the dropdown is hidden
            document.removeEventListener("mousedown", handleClickOutside);
        }
 
-       // Cleanup function: removes the event listener when the component unmounts
        return () => {
            document.removeEventListener("mousedown", handleClickOutside);
        };
-   }, [filtered]); // Re-run effect whenever the filtered list changes (dropdown visibility changes)
+   }, [filtered]);
 
 
   // Handle changes in the input field
   const handleChange = (e) => {
-    const value = e.target.value;
-    setInput(value); // Update the input state
-    // Filtering is automatically handled by the useEffect hook above
+    onChange(e); // Update the state in App.js
   };
 
-  // Handle form submission (e.g., pressing Enter in the input)
+  // Handle form submission
   const handleSubmit = (e) => {
-    e.preventDefault(); // Prevent the default form submission (page reload)
-    if (input.trim()) { // Check if the input has non-whitespace characters
-       // Call the onGuess function passed from the parent (App.js)
-       onGuess(input.trim());
-       setInput(""); // Clear the input field after a guess is made
+    e.preventDefault();
+    if (value.trim()) {
+       // Call onGuess with the trimmed value (should be character ID or name)
+       onGuess(value.trim()); // App.js will find the character object
     }
-     setFiltered([]); // Hide the dropdown after submission attempt
+     setFiltered([]); // Hide dropdown after submission attempt
   };
 
-  // Handle selection of a character from the autocomplete dropdown
+  // Handle selecting a character from the autocomplete list
   const handleSelect = (id) => {
-    setInput(id); // Put the selected character's ID into the input field
-    onGuess(id); // Submit the selected character ID as a guess
+    // When selecting, call onGuess with the selected ID
+    onGuess(id); // Submit the selected character ID
     setFiltered([]); // Hide the dropdown
   };
 
   return (
-    // Main container for the form and dropdown, attach ref here
     <div ref={formRef} className="relative w-full max-w-xl font-satoshi font-black ">
-      {/* The search form */}
       <form onSubmit={handleSubmit} className="flex">
         <input
           type="text"
-          placeholder="Search a character name" // Placeholder text
-          value={input} // Connect input value to state
-          onChange={handleChange} // Handle input changes
-          // Apply styling from the image (border, rounded corners, shadow)
-          // Add focus styles for better usability
-          className="w-full border border-black rounded-lg px-4 py-2 shadow focus:outline-none focus:ring-2 focus:ring-blue-500"
-          // Disable the input if no characters are loaded yet
-          // Since characters is initialized with local data, this will be false initially
+          placeholder="Busca un personaje"
+          value={value}
+          onChange={handleChange}
+          className="w-full border-t-4 border-l-4 border-r-4 border-b-8 border-[#1E2224] rounded-tl-[8px] rounded-tr-[24px] rounded-br-[8px] rounded-bl-[24px] px-6 py-3 shadow focus:outline-none focus:ring-2 focus:ring-blue-500 bg-[#EDECEA]"
           disabled={characters.length === 0}
-          autoComplete="off" // Disable browser's default autocomplete
-          aria-label="Search for a character" // Accessibility label
+          autoComplete="off"
+          aria-label="Busca un personaje"
         />
-        {/* Optional: Add a visible submit button beside the input */}
       </form>
 
       {/* Autocomplete Dropdown List */}
-      {/* Render the dropdown only if input is not empty AND there are matching characters */}
-      {input.length > 0 && filtered.length > 0 && (
-        // Position absolutely below the input, stack on top with z-10
-        <ul className="absolute z-10 bg-white border border-black mt-1 w-full rounded-md shadow max-h-60 overflow-y-auto"> {/* Added max-height and overflow for scrolling */}
-          {/* Map through filtered characters to create list items */}
+      {/* Show dropdown only if `value` (input content) is not empty and there are filtered results */}
+      {value.length > 0 && filtered.length > 0 && (
+        <ul className="absolute z-10 bg-white border border-black mt-1 w-full rounded-md shadow max-h-60 overflow-y-auto">
           {filtered.map((char) => (
             <li
-              key={char.id} // Use character ID as a unique key
-              onClick={() => handleSelect(char.id)} // Handle clicking on a character in the list
-              // Styling for list items: flex layout, spacing, hover effect
+              key={char.id}
+              onClick={() => handleSelect(char.id)} // Use character ID when selecting
               className="flex items-center gap-3 px-3 py-2 hover:bg-gray-100 cursor-pointer transition-colors duration-100"
             >
-              {/* Display character image thumbnail if available */}
               {char.image && (
                 <img
                   src={char.image}
-                  alt={char.id} // Use character ID as alt text for accessibility
-                  className="w-9 h-9 object-cover rounded border border-gray-300" // Styling for the thumbnail
-                   onError={(e) => { e.target.style.display = 'none'; }} // Hide the <img> element if image fails to load
+                  alt={char.id}
+                  className="w-9 h-9 object-cover rounded border border-gray-300"
+                   onError={(e) => { e.target.style.display = 'none'; }}
                 />
               )}
-              {/* Display character name (localized if available, otherwise ID) */}
+              {/* Display Spanish name (name_es) or fallback to ID */}
               <span className="capitalize font-medium text-gray-800">
-                  {char[`name_${lang}`] || char.id} {/* Access localized name or fallback to ID */}
+                  {char.name_es || char.id}
               </span>
             </li>
           ))}
