@@ -1,17 +1,17 @@
-// src/components/GuessForm.js - No changes needed from the previous version for API integration
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, forwardRef } from "react"; // Import forwardRef
 
-// Accept value, onChange, onGuess, and characters (removed lang)
-function GuessForm({ value, onChange, onGuess, characters = [] }) {
+
+// Wrap the component in forwardRef to accept a ref prop
+const GuessForm = forwardRef(({ value, onChange, onGuess, characters = [] }, ref) => {
   const [filtered, setFiltered] = useState([]);
-  const formRef = useRef(null);
+  const formRef = useRef(null); // Still use internal ref for outside click
+
 
   // Effect for filtering characters based on the `value` prop (input content)
   useEffect(() => {
       if (value.length > 0 && characters.length > 0) {
         const lowerInput = value.toLowerCase();
         const matches = characters.filter((char) =>
-            // Filter by ID or Spanish name (name_es)
             char.id.toLowerCase().includes(lowerInput) ||
             (char.name_es && char.name_es.toLowerCase().includes(lowerInput))
         );
@@ -19,7 +19,6 @@ function GuessForm({ value, onChange, onGuess, characters = [] }) {
       } else {
         setFiltered([]);
       }
-      // Dependency array includes value and characters
   }, [value, characters]);
 
 
@@ -52,21 +51,23 @@ function GuessForm({ value, onChange, onGuess, characters = [] }) {
   const handleSubmit = (e) => {
     e.preventDefault();
     if (value.trim()) {
-       // Call onGuess with the trimmed value (should be character ID or name)
-       onGuess(value.trim()); // App.js will find the character object
+       onGuess(value.trim());
     }
      setFiltered([]); // Hide dropdown after submission attempt
   };
 
   // Handle selecting a character from the autocomplete list
   const handleSelect = (id) => {
-    // When selecting, call onGuess with the selected ID
     onGuess(id); // Submit the selected character ID
     setFiltered([]); // Hide the dropdown
   };
 
   return (
-    <div ref={formRef} className="relative w-full max-w-xl font-satoshi font-black ">
+    // Attach BOTH the forwarded ref AND the internal ref to the main container div
+    // The forwarded ref is for the parent (App.js) to target with GSAP
+    // The internal ref is for this component's own outside click logic
+    <div ref={(node) => { formRef.current = node; if (ref) ref.current = node; }} // Combine refs
+         className="relative w-full max-w-xl font-satoshi font-black ">
       <form onSubmit={handleSubmit} className="flex">
         <input
           type="text"
@@ -81,13 +82,12 @@ function GuessForm({ value, onChange, onGuess, characters = [] }) {
       </form>
 
       {/* Autocomplete Dropdown List */}
-      {/* Show dropdown only if `value` (input content) is not empty and there are filtered results */}
       {value.length > 0 && filtered.length > 0 && (
         <ul className="absolute z-10 bg-white border border-black mt-1 w-full rounded-md shadow max-h-60 overflow-y-auto">
           {filtered.map((char) => (
             <li
               key={char.id}
-              onClick={() => handleSelect(char.id)} // Use character ID when selecting
+              onClick={() => handleSelect(char.id)}
               className="flex items-center gap-3 px-3 py-2 hover:bg-gray-100 cursor-pointer transition-colors duration-100"
             >
               {char.image && (
@@ -98,7 +98,6 @@ function GuessForm({ value, onChange, onGuess, characters = [] }) {
                    onError={(e) => { e.target.style.display = 'none'; }}
                 />
               )}
-              {/* Display Spanish name (name_es) or fallback to ID */}
               <span className="capitalize font-medium text-gray-800">
                   {char.name_es || char.id}
               </span>
@@ -108,6 +107,6 @@ function GuessForm({ value, onChange, onGuess, characters = [] }) {
       )}
     </div>
   );
-}
+}); // Close forwardRef
 
 export default GuessForm;
