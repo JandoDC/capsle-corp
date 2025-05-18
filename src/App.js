@@ -1,29 +1,21 @@
 // src/App.js
 import React from 'react';
-import { Routes, Route, useLocation } from 'react-router-dom'; // Import useLocation
-import { AnimatePresence } from 'framer-motion'; // Import AnimatePresence
+import { Routes, Route, useLocation } from 'react-router-dom';
 import HomePage from './components/HomePage';
-import GamePage from './components/GamePage'; // Your GamePage component
+import GamePage from './components/GamePage'; // Your GamePage component that fetches API data
 
 function App() {
-  const location = useLocation(); // Get the current location object
+  const location = useLocation(); // Good to keep for ensuring components re-render on path change
 
   return (
-    // AnimatePresence handles enter and exit animations for its direct children
-    // mode="wait" ensures the exiting page finishes its animation before the new one enters
-    <AnimatePresence mode="wait">
-      {/*
-        The key={location.pathname} on Routes is crucial.
-        It tells AnimatePresence that when the pathname changes,
-        the old Routes instance (and its child Route/element) is being replaced,
-        triggering exit/enter animations.
-      */}
-      <Routes location={location} key={location.pathname}>
-        <Route path="/" element={<HomePage />} />
-        <Route path="/game" element={<GamePage />} />
-        {/* You can add other routes here later */}
-      </Routes>
-    </AnimatePresence>
+    // The key on Routes ensures that when the path changes, React treats it as a new instance,
+    // causing the old component to unmount and the new one to mount.
+    // HomePage will handle its own exit animation before navigation.
+    // GamePage will handle its own enter animation (if any) or just appear.
+    <Routes location={location} key={location.pathname}>
+      <Route path="/" element={<HomePage />} /> {/* No setPageRef needed from App.js */}
+      <Route path="/game" element={<GamePage />} /> {/* No setPageRef needed from App.js */}
+    </Routes>
   );
 }
 

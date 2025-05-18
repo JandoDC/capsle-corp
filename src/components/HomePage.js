@@ -1,34 +1,23 @@
 // src/components/HomePage.js
-import React from 'react';
+import React, { useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useRive, Layout, Fit, Alignment } from '@rive-app/react-canvas';
-import { motion } from 'framer-motion'; // Import motion
+import gsap from 'gsap';
 
-// Define animation variants for the page
-const pageVariants = {
-  initial: { // State when component is initially mounted or about to enter
-    opacity: 0,
-    y: 20, // Start slightly below
-  },
-  in: { // State when component is visible
-    opacity: 1,
-    y: 0,
-  },
-  out: { // State when component is about to exit
-    opacity: 0,
-    y: -20, // Exit slightly above
-  },
-};
-
-// Define transition properties
-const pageTransition = {
-  type: 'tween', // Smooth transition
-  ease: 'anticipate', // Easing function (you can experiment with others like "easeInOut")
-  duration: 0.5, // Duration of the transition
-};
-
-function HomePage() {
+function HomePage() { // Removed setPageRef if App.js doesn't use it
   const navigate = useNavigate();
+  const pageContainerRef = useRef(null);
+
+  // GSAP Enter Animation for this page
+  useEffect(() => {
+    if (pageContainerRef.current) {
+      gsap.fromTo(pageContainerRef.current,
+        { opacity: 0, y: 20 },
+        { opacity: 1, y: 0, duration: 0.5, ease: 'power3.out', delay: 0.1 }
+      );
+    }
+  }, []);
+
 
   const { RiveComponent, rive } = useRive({
     src: '/rive_assets/capsle_corp_button.riv',
@@ -48,20 +37,26 @@ function HomePage() {
         trigger.fire();
       }
     }
-    setTimeout(() => {
-      navigate('/game');
-    }, 300);
+    if (pageContainerRef.current) {
+      gsap.to(pageContainerRef.current, {
+        opacity: 0,
+        y: -20,
+        duration: 0.3,
+        ease: 'power2.in',
+        onComplete: () => navigate('/game'),
+      });
+    } else {
+      navigate('/game'); // Fallback if ref isn't ready (shouldn't happen)
+    }
   };
 
   return (
-    // Wrap the page content with motion.div and apply variants/transition
-    <motion.div
-      initial="initial"
-      animate="in"
-      exit="out"
-      variants={pageVariants}
-      transition={pageTransition}
-      className="min-h-screen bg-[#EDECEA] flex flex-col items-center justify-center font-satoshi text-center p-4"
+    // Apply the linear gradient background using inline style
+    // Removed bg-[#EDECEA] from className
+    <div
+    ref={pageContainerRef}
+      style={{ opacity: 0, background: 'linear-gradient(to bottom, #EFE3CB, #EDECEA)' }} // Add inline style for gradient
+      className="min-h-screen flex flex-col items-center justify-center font-satoshi text-center p-4"
     >
       <h1 className="text-4xl sm:text-5xl font-black text-black mb-12">
         Capsle Corp
@@ -79,7 +74,7 @@ function HomePage() {
       <p className="text-gray-600 mt-8 text-sm">
         Haz clic en el botón para comenzar a adivinar.
       </p>
-    </motion.div>
+    </div>
   );
 }
 
