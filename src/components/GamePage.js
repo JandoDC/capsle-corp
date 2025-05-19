@@ -1,11 +1,12 @@
+// Modified GamePage.js
 import React, { useState, useEffect, useRef } from "react";
 import gsap from 'gsap';
 import { useGSAP } from '@gsap/react'; 
 
-// NEW, CORRECT PATHS in GamePage.js
 import GuessForm from "./GuessForm";
 import ResultRow from "./ResultRow";
 import Header from "./Header";
+import WinnerModal from "./WinnerModal"; // Add this import
 
 const selectCharacterOfTheDay = (chars) => {
     if (!chars || chars.length === 0) {
@@ -27,6 +28,7 @@ function GamePage() {
   const [loading, setLoading] = useState(true);
   const titleRef = useRef(null);
   const searchRef = useRef(null);
+  const [showWinnerModal, setShowWinnerModal] = useState(false); // Add this state
   
   // Animation state to control when animation has completed
   const [animationComplete, setAnimationComplete] = useState(false);
@@ -71,17 +73,25 @@ function GamePage() {
 
           const processedCharacters = apiCharacters.map(apiChar => {
               return {
-                  id: apiChar.id ? apiChar.id.toString() : 'unknown',
-                  name_es: apiChar.name || apiChar.id,
-                  image: apiChar.image || '/icons/placeholder.png',
-                  gender_es: apiChar.gender || 'Desconocido',
-                  race_es: apiChar.race || 'Desconocido',
-                  affiliation_es: apiChar.affiliation || 'Desconocido',
-                  deaths: 0,
-                  serie_es: 'Desconocida',
-                  saga_es: 'Desconocida',
-                  origin_es: 'Desconocido',
-              };
+        id: apiChar.id ? apiChar.id.toString() : 'unknown',
+        name_es: apiChar.name || apiChar.id,
+        image: apiChar.image || '/icons/placeholder.png',
+        gender_es: apiChar.gender || 'Desconocido',
+        race_es: apiChar.race || 'Desconocido',
+        affiliation_es: apiChar.affiliation || 'Desconocido',
+        
+        // Add Ki and Max Ki values
+        // If these values are available in your API, use them directly
+        // Otherwise, we'll generate random values for demonstration
+        ki: apiChar.ki || Math.floor(Math.random() * 10000) + 1000,
+        maxKi: apiChar.maxKi || Math.floor(Math.random() * 100000) + 10000,
+        
+        // Other attributes
+        deaths: 0,
+        serie_es: 'Desconocida',
+        saga_es: 'Desconocida',
+        origin_es: 'Desconocido',
+    };
           })
           .filter(char => char.id && char.name_es !== 'Desconocido' && char.image);
 
@@ -101,25 +111,22 @@ function GamePage() {
       fetchCharacters();
   }, []);
 
-  // Animation Logic for first guess
+  // Animation Logic for first guess - we'll modify this
   useGSAP(() => {
     if (guesses.length === 1 && titleRef.current && searchRef.current) {
        const titleElement = titleRef.current;
        const searchElement = searchRef.current;
        const tl = gsap.timeline();
 
+       // Instead of moving the title up, we'll just make it smaller
        tl.to(titleElement, {
-         y: -100,
-         opacity: 1,
+         scale: 0.8,
+         y: -20, // Move up slightly but not as much
          duration: 0.8,
          ease: "power3.out",
        });
 
-       tl.fromTo(searchElement,
-         { opacity: 0, y: 50 },
-         { opacity: 1, y: 0, duration: 0.8, ease: "power3.out" },
-         ">-0.5"
-       );
+       // No need to animate the search bar since it will stay in place
     }
   }, [guesses]);
 
@@ -142,8 +149,10 @@ function GamePage() {
     setGuesses((prev) => [found, ...prev]);
     setSearchInput('');
 
+    // Check if the guess is correct and show winner modal
     if (correctAnswer && found.id === correctAnswer.id) {
         console.log("¡Felicidades! ¡Adivinaste correctamente!");
+        setShowWinnerModal(true);
     }
   };
 
@@ -172,23 +181,22 @@ function GamePage() {
     );
   }
 
-  const mainContainerClasses = `min-h-screen flex flex-col items-center font-satoshi ${guesses.length === 0 ? 'justify-center' : 'justify-start pt-6'}`;
-
+  // Modified layout - no longer changes justify-center based on guesses
   return (
     <div 
       className="min-h-screen"
       style={{ background: 'linear-gradient(to bottom, #EFE3CB, #EDECEA)' }}
     >
-      {/* Apply initial opacity: 0 directly in the style to ensure it starts invisible */}
       <div
         ref={pageContainerRef}
-        className={mainContainerClasses}
+        className="min-h-screen flex flex-col items-center font-satoshi pt-6" // Always start from top
         style={{ opacity: 0 }} // Start invisible
       >
         <Header />
 
-        <div className="flex flex-col items-center w-full max-w-5xl">
-          <div ref={titleRef} className="text-center mt-8 mb-6">
+        {/* Title and Search always at the top */}
+        <div className="flex flex-col items-center w-full max-w-5xl mb-8">
+          <div ref={titleRef} className="text-center mt-4 mb-6">
             <h1 className="text-3xl sm:text-4xl font-black text-black">
               Adivina el personaje de hoy
             </h1>
@@ -203,8 +211,9 @@ function GamePage() {
           />
         </div>
 
+        {/* Results below the search */}
         {guesses.length > 0 && (
-          <div className="w-full max-w-5xl mt-8 flex flex-col items-center gap-4">
+          <div className="w-full max-w-5xl flex flex-col items-center gap-4 pb-8">
               {guesses.map((guess) => (
                 <ResultRow
                   key={guess.id}
@@ -214,6 +223,13 @@ function GamePage() {
               ))}
           </div>
         )}
+        
+        {/* Winner Modal */}
+        <WinnerModal 
+          isOpen={showWinnerModal}
+          onClose={() => setShowWinnerModal(false)}
+          correctCharacter={correctAnswer}
+        />
       </div>
     </div>
   );
