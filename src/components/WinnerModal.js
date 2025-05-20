@@ -1,20 +1,50 @@
-// src/components/WinnerModal.js
-import React, { useEffect } from 'react';
-import { useRive, Layout, Fit, Alignment } from '@rive-app/react-canvas';
+import React, { useEffect, useRef } from 'react';
+import { useRive, Layout, Fit, Alignment } from '@rive-app/react-webgl2';
 import gsap from 'gsap';
 
 function WinnerModal({ isOpen, onClose, correctCharacter }) {
-  const modalRef = React.useRef(null);
+  const modalRef = useRef(null);
 
-  const { RiveComponent, rive } = useRive({
+  const { rive, RiveComponent } = useRive({
     src: '/rive_assets/winner.riv',
-    stateMachines: 'State Machine 1', // Adjust this to match your Rive file's state machine name
     autoplay: true,
+    autoBind: true,
     layout: new Layout({
       fit: Fit.Contain,
       alignment: Alignment.Center,
     }),
+    stateMachines: 'State Machine 1',
+    onLoad: () => {
+      if (rive && correctCharacter) {
+        try {
+          const viewModelInstance = rive.viewModelInstance;
+          
+          if (viewModelInstance) {
+            const characterName = correctCharacter.name_es || correctCharacter.name || 'Personaje';
+            viewModelInstance.string('character name').value = characterName;
+          }
+        } catch (error) {
+          console.error('Error setting character name:', error);
+        }
+      }
+    }
   });
+
+  // Update the character name when correctCharacter changes
+  useEffect(() => {
+    if (rive && correctCharacter && isOpen) {
+      try {
+        const viewModelInstance = rive.viewModelInstance;
+        
+        if (viewModelInstance) {
+          const characterName = correctCharacter.name_es || correctCharacter.name || 'Personaje';
+          viewModelInstance.string('character name').value = characterName;
+        }
+      } catch (error) {
+        console.error('Error updating character name:', error);
+      }
+    }
+  }, [rive, correctCharacter, isOpen]);
 
   // Animation for modal entrance
   useEffect(() => {
@@ -56,24 +86,15 @@ function WinnerModal({ isOpen, onClose, correctCharacter }) {
     <div className="fixed inset-0 flex items-center justify-center z-50 bg-black bg-opacity-70">
       <div 
         ref={modalRef}
-        className="bg-white rounded-2xl border-4 border-black shadow-xl w-[90%] max-w-md overflow-hidden"
+        className="border-black w-full max-w-md overflow-hidden"
       >
-        <div className="p-4 bg-[#EFE3CB] border-b-2 border-black">
-          <h2 className="text-2xl font-black text-center">¡Felicidades!</h2>
-        </div>
-        
         {/* Rive animation container */}
-        <div className="w-full h-64 bg-[#EFE3CB]">
-          <RiveComponent className="w-full h-full" />
+        <div className="w-full h-[700px]">
+          <RiveComponent />
         </div>
         
         {/* Character info */}
-        <div className="p-4 bg-[#EFE3CB] text-center">
-          <p className="mb-2 font-bold">¡Has adivinado correctamente!</p>
-          <p className="text-lg font-black mb-4">
-            {correctCharacter?.name_es || 'Personaje del día'}
-          </p>
-          
+        <div className="p-4 text-center">
           <button
             onClick={handleClose}
             className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-6 rounded-full transition-colors"
