@@ -83,7 +83,7 @@ function WinnerModal({ isOpen, onClose, correctCharacter }) {
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 flex items-center justify-center z-50 bg-black bg-opacity-70">
+    <div className="fixed inset-0 flex items-center justify-center z-50 bg-[#edecea] bg-opacity-90">
       <div 
         ref={modalRef}
         className="border-black w-full max-w-md overflow-hidden"
